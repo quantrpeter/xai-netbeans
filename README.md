@@ -74,7 +74,7 @@ inspect and modify the workspace; the `AgentEngine` runs that
 request → tool-call → tool-result loop until the model returns a final answer
 or the step cap is reached.
 
-![](/ARCHITECTURE.md)
+[](/ARCHITECTURE.md)
 
 ## Notes & limitations
 
