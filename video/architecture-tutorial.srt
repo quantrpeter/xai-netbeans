@@ -1,0 +1,280 @@
+1
+00:00:00,000 --> 00:00:04,725
+Welcome. This is xAI NetBeans, an agentic coding assistant
+
+2
+00:00:04,825 --> 00:00:09,468
+powered by xAI's Grok model, embedded directly inside the
+
+3
+00:00:09,568 --> 00:00:13,877
+Apache NetBeans I-D-E. In the next few minutes, we'll
+
+4
+00:00:13,977 --> 00:00:17,372
+walk through its architecture, end to end.
+
+5
+00:00:18,466 --> 00:00:21,222
+First, what exactly is this module?
+
+6
+00:00:22,466 --> 00:00:27,041
+xAI NetBeans is a NetBeans Platform module. It adds a xAI
+
+7
+00:00:27,141 --> 00:00:32,044
+Assistant tool window where you chat with Grok. Grok can read
+
+8
+00:00:32,144 --> 00:00:37,047
+your project, search it, and, in agent modes, create and edit
+
+9
+00:00:37,147 --> 00:00:43,198
+files. Everything flows through an OpenAI-compatible function-calling loop.
+
+10
+00:00:43,283 --> 00:00:48,221
+Under the hood, it's Java 17, built against NetBeans
+
+11
+00:00:48,321 --> 00:00:54,034
+release 240, using the J-D-K's built-in HttpClient, Gson for
+
+12
+00:00:54,134 --> 00:00:58,975
+J-SON, and commonmark for rendering the transcript.
+
+13
+00:01:00,066 --> 00:01:02,654
+Let's see how the pieces fit together.
+
+14
+00:01:04,066 --> 00:01:08,889
+At the top is the Xai Assistant Top Component, the tool window that
+
+15
+00:01:08,989 --> 00:01:14,694
+hosts multiple tabs. Each tab is a Session Panel, one independent chat session.
+
+16
+00:01:14,794 --> 00:01:20,205
+A session owns a Transcript for the conversation view, an Agent Engine that
+
+17
+00:01:20,305 --> 00:01:24,246
+drives the agent, and it reads the settings at runtime.
+
+18
+00:01:24,333 --> 00:01:28,093
+The Agent Engine is the heart of the module. It holds
+
+19
+00:01:28,193 --> 00:01:33,482
+the conversation history and coordinates three things: the Xai Client that
+
+20
+00:01:33,582 --> 00:01:37,487
+talks to the Grok API, a Tool Registry of five callable
+
+21
+00:01:37,587 --> 00:01:41,129
+tools, and the system prompt for the current mode.
+
+22
+00:01:42,216 --> 00:01:45,476
+The code is organized into five packages.
+
+23
+00:01:46,566 --> 00:01:51,148
+The api package handles H-T-T-P transport and the wire data
+
+24
+00:01:51,248 --> 00:01:55,592
+model. core holds the Mode enum, the system prompts, and
+
+25
+00:01:55,692 --> 00:02:01,623
+the Agent Engine loop. settings stores configuration in NetBeans preferences
+
+26
+00:02:01,723 --> 00:02:07,019
+and adds the Options panel. tools contains the tool implementations,
+
+27
+00:02:07,119 --> 00:02:11,304
+the registry, and path resolution. And u-i is the tool
+
+28
+00:02:11,404 --> 00:02:14,954
+window, the session panel, and the transcript.
+
+29
+00:02:16,050 --> 00:02:19,238
+What Grok is allowed to do depends on the mode.
+
+30
+00:02:20,333 --> 00:02:24,891
+There are five modes. Ask, Plan, and Debug are read-only.
+
+31
+00:02:24,991 --> 00:02:29,631
+They expose three safe tools and never modify files. Agent
+
+32
+00:02:29,731 --> 00:02:34,534
+and Multitask are read-write. They expose all five tools and
+
+33
+00:02:34,634 --> 00:02:40,009
+can edit your project, with Multitask running across parallel tabs.
+
+34
+00:02:40,100 --> 00:02:44,274
+One important detail: switching the mode builds a brand-new
+
+35
+00:02:44,374 --> 00:02:47,824
+engine, with a fresh prompt and an empty history.
+
+36
+00:02:48,916 --> 00:02:51,312
+Now, the tools themselves.
+
+37
+00:02:52,916 --> 00:02:57,638
+Grok can call five tools. read file, list dir, and search are
+
+38
+00:02:57,738 --> 00:03:03,645
+read-only; they inspect your project. write file and edit file are mutating.
+
+39
+00:03:03,745 --> 00:03:08,625
+write file creates or overwrites a file, and edit file makes an
+
+40
+00:03:08,725 --> 00:03:14,632
+exact string replacement. Both require your approval before they touch disk.
+
+41
+00:03:15,716 --> 00:03:20,320
+This brings us to the agent loop, the core of how a turn runs.
+
+42
+00:03:21,416 --> 00:03:24,866
+When you send a prompt, your message is appended to
+
+43
+00:03:24,966 --> 00:03:28,485
+the history. The engine then calls the Grok API with
+
+44
+00:03:28,585 --> 00:03:31,756
+the history and the tools allowed by your mode.
+
+45
+00:03:31,850 --> 00:03:35,406
+If the response contains no tool calls, the turn
+
+46
+00:03:35,506 --> 00:03:38,302
+is done, and you get the final answer.
+
+47
+00:03:38,400 --> 00:03:43,386
+But if Grok requests tool calls, the engine dispatches each one,
+
+48
+00:03:43,486 --> 00:03:49,189
+checking approval, executing it, and refreshing the I-D-E. It appends the
+
+49
+00:03:49,289 --> 00:03:53,084
+results to the history and calls the model again.
+
+50
+00:03:53,183 --> 00:03:56,642
+This repeats until Grok stops asking for tools,
+
+51
+00:03:56,742 --> 00:04:00,200
+up to a default of twenty-five iterations. Note
+
+52
+00:04:00,300 --> 00:04:03,835
+that every single call sends the entire history.
+
+53
+00:04:04,933 --> 00:04:06,921
+A quick word on threading.
+
+54
+00:04:08,016 --> 00:04:13,622
+All user-interface work happens on the Swing event dispatch thread: input,
+
+55
+00:04:13,722 --> 00:04:19,327
+the transcript, and approval dialogs. The agent turn, the blocking H-T-T-P
+
+56
+00:04:19,427 --> 00:04:24,493
+call, and tool execution run on a background Request Processor pool
+
+57
+00:04:24,593 --> 00:04:28,425
+with eight threads, so up to eight tabs can work at
+
+58
+00:04:28,525 --> 00:04:32,588
+once. Callbacks are marshalled back to the U-I thread.
+
+59
+00:04:32,683 --> 00:04:37,368
+When a mutating tool needs approval, it blocks its background thread
+
+60
+00:04:37,468 --> 00:04:41,871
+and waits while the dialog is shown. That's the approval bridge.
+
+61
+00:04:42,966 --> 00:04:46,778
+Finally, some deliberate design choices and limits.
+
+62
+00:04:47,866 --> 00:04:52,819
+The client is non-streaming; a turn blocks until the full response
+
+63
+00:04:52,919 --> 00:04:58,101
+arrives. There's no editor integration: edits go straight to disk and
+
+64
+00:04:58,201 --> 00:05:03,307
+are surfaced with a file refresh. There's no command execution, only
+
+65
+00:05:03,407 --> 00:05:08,437
+the five filesystem tools. Search uses regex over files rather than
+
+66
+00:05:08,537 --> 00:05:15,403
+the I-D-E index. Conversations aren't persisted across restarts. And approval intentionally
+
+67
+00:05:15,503 --> 00:05:18,006
+blocks the agent until you decide.
+
+68
+00:05:19,100 --> 00:05:24,190
+And that's the architecture, end to end: from the U-I, through the
+
+69
+00:05:24,290 --> 00:05:29,144
+Agent Engine, to Grok, to the tools, and finally to your files.
+
+70
+00:05:29,244 --> 00:05:35,200
+For all the details, see the architecture markdown file. Thanks for watching.
+

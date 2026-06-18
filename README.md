@@ -74,6 +74,8 @@ inspect and modify the workspace; the `AgentEngine` runs that
 request → tool-call → tool-result loop until the model returns a final answer
 or the step cap is reached.
 
+![](/ARCHITECTURE.md)
+
 ## Notes & limitations
 
 - Responses are non-streaming in this version; a turn shows once complete.

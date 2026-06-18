@@ -1,0 +1,4 @@
+manim==0.19.1
+manim-voiceover[gtts]==0.3.7
+# manim-voiceover still imports pkg_resources, removed from setuptools >= 81
+setuptools<80
