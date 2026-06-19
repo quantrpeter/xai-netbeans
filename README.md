@@ -1,5 +1,7 @@
 # xAI Assistant for NetBeans
 
+![](/img/banner1.png)
+
 A GitHub Copilot–style coding assistant for Apache NetBeans, powered by the
 [xAI API](https://docs.x.ai) (Grok models). Enter a prompt and the assistant can
 explain your code, plan changes, debug issues, and — in Agent mode — read,
