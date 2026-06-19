@@ -5,9 +5,7 @@ plugin is structured, what happens when you type a prompt, how NetBeans and the
 xAI (Grok) API talk to each other, and how the module executes the actions that
 Grok asks for inside the IDE.
 
-<video src="/video/architecture-tutorial.mp4" width="800" height="550" controls></video>
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/video-id" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+![tutorial video](/video/architecture-tutorial.mp4)
 
 ---
 
