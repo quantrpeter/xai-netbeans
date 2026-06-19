@@ -207,74 +207,170 @@ up to a default of twenty-five iterations. Note
 that every single call sends the entire history.
 
 53
-00:04:04,933 --> 00:04:06,921
-A quick word on threading.
+00:04:04,933 --> 00:04:07,616
+Now let's trace one full request,
 
 54
-00:04:08,016 --> 00:04:13,622
-All user-interface work happens on the Swing event dispatch thread: input,
+00:04:07,716 --> 00:04:10,905
+step by step, across every participant.
 
 55
-00:04:13,722 --> 00:04:19,327
-the transcript, and approval dialogs. The agent turn, the blocking H-T-T-P
+00:04:12,000 --> 00:04:16,225
+Here are the eleven participants, from you on the left to
 
 56
-00:04:19,427 --> 00:04:24,493
-call, and tool execution run on a background Request Processor pool
+00:04:16,325 --> 00:04:21,157
+NetBeans on the right. Each vertical line is a lifeline; messages
 
 57
-00:04:24,593 --> 00:04:28,425
-with eight threads, so up to eight tabs can work at
+00:04:21,257 --> 00:04:25,028
+flow between them, top to bottom, as the turn runs.
 
 58
-00:04:28,525 --> 00:04:32,588
-once. Callbacks are marshalled back to the U-I thread.
+00:04:25,116 --> 00:04:29,003
+You type a prompt and hit Send. The Session Panel guards
 
 59
-00:04:32,683 --> 00:04:37,368
-When a mutating tool needs approval, it blocks its background thread
+00:04:29,103 --> 00:04:34,485
+against empty or already-running input, echoes your text into the transcript,
 
 60
-00:04:37,468 --> 00:04:41,871
-and waits while the dialog is shown. That's the approval bridge.
+00:04:34,585 --> 00:04:38,542
+flips into the Working state, and posts the turn onto the
 
 61
-00:04:42,966 --> 00:04:46,778
-Finally, some deliberate design choices and limits.
+00:04:38,642 --> 00:04:44,024
+background Request Processor, which invokes the Agent Engine's run-user-turn.
 
 62
-00:04:47,866 --> 00:04:52,819
-The client is non-streaming; a turn blocks until the full response
+00:04:44,616 --> 00:04:49,276
+Inside the loop, the Agent Engine asks the Xai Client to complete
 
 63
-00:04:52,919 --> 00:04:58,101
-arrives. There's no editor integration: edits go straight to disk and
+00:04:49,376 --> 00:04:54,108
+the conversation. The client builds the J-SON body and posts it to
 
 64
-00:04:58,201 --> 00:05:03,307
-are surfaced with a file refresh. There's no command execution, only
+00:04:54,208 --> 00:04:59,088
+the Grok API. The API returns a message, which becomes a ChatMessage
 
 65
-00:05:03,407 --> 00:05:08,437
-the five filesystem tools. Search uses regex over files rather than
+00:04:59,188 --> 00:05:03,774
+flowing back to the engine. If it carries text, that's pushed to
 
 66
-00:05:08,537 --> 00:05:15,403
-the I-D-E index. Conversations aren't persisted across restarts. And approval intentionally
+00:05:03,874 --> 00:05:07,508
+the Session Panel and rendered into the transcript.
 
 67
-00:05:15,503 --> 00:05:18,006
-blocks the agent until you decide.
+00:05:08,100 --> 00:05:12,177
+If the response asks for a tool, the engine looks it up
 
 68
-00:05:19,100 --> 00:05:24,190
-And that's the architecture, end to end: from the U-I, through the
+00:05:12,277 --> 00:05:17,797
+in the registry, checks the mode's mutation policy, and executes the tool.
 
 69
-00:05:24,290 --> 00:05:29,144
-Agent Engine, to Grok, to the tools, and finally to your files.
+00:05:17,897 --> 00:05:23,190
+For a mutating tool it first requests your approval, blocking until you
 
 70
-00:05:29,244 --> 00:05:35,200
+00:05:23,290 --> 00:05:28,506
+decide. Then it resolves the path, reads or writes through java N-I-O,
+
+71
+00:05:28,606 --> 00:05:32,912
+and asks NetBeans to refresh so the I-D-E sees the change.
+
+72
+00:05:33,500 --> 00:05:37,602
+The tool's result returns to the engine, is surfaced to
+
+73
+00:05:37,702 --> 00:05:42,033
+the transcript, and appended to the history. The loop then
+
+74
+00:05:42,133 --> 00:05:46,694
+repeats, calling the model again, until Grok stops asking for
+
+75
+00:05:46,794 --> 00:05:51,431
+tools and signals completion. Finally, back on the U-I thread,
+
+76
+00:05:51,531 --> 00:05:54,640
+the Session Panel restores its idle state.
+
+77
+00:05:56,233 --> 00:05:58,221
+A quick word on threading.
+
+78
+00:05:59,316 --> 00:06:04,922
+All user-interface work happens on the Swing event dispatch thread: input,
+
+79
+00:06:05,022 --> 00:06:10,627
+the transcript, and approval dialogs. The agent turn, the blocking H-T-T-P
+
+80
+00:06:10,727 --> 00:06:15,793
+call, and tool execution run on a background Request Processor pool
+
+81
+00:06:15,893 --> 00:06:19,725
+with eight threads, so up to eight tabs can work at
+
+82
+00:06:19,825 --> 00:06:23,888
+once. Callbacks are marshalled back to the U-I thread.
+
+83
+00:06:23,983 --> 00:06:28,668
+When a mutating tool needs approval, it blocks its background thread
+
+84
+00:06:28,768 --> 00:06:33,171
+and waits while the dialog is shown. That's the approval bridge.
+
+85
+00:06:34,266 --> 00:06:38,078
+Finally, some deliberate design choices and limits.
+
+86
+00:06:39,166 --> 00:06:44,119
+The client is non-streaming; a turn blocks until the full response
+
+87
+00:06:44,219 --> 00:06:49,401
+arrives. There's no editor integration: edits go straight to disk and
+
+88
+00:06:49,501 --> 00:06:54,607
+are surfaced with a file refresh. There's no command execution, only
+
+89
+00:06:54,707 --> 00:06:59,737
+the five filesystem tools. Search uses regex over files rather than
+
+90
+00:06:59,837 --> 00:07:06,703
+the I-D-E index. Conversations aren't persisted across restarts. And approval intentionally
+
+91
+00:07:06,803 --> 00:07:09,306
+blocks the agent until you decide.
+
+92
+00:07:10,400 --> 00:07:15,490
+And that's the architecture, end to end: from the U-I, through the
+
+93
+00:07:15,590 --> 00:07:20,444
+Agent Engine, to Grok, to the tools, and finally to your files.
+
+94
+00:07:20,544 --> 00:07:26,500
 For all the details, see the architecture markdown file. Thanks for watching.
 

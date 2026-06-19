@@ -13,7 +13,7 @@ import org.openide.util.Lookup;
  */
 @OptionsPanelController.SubRegistration(
         location = "Advanced",
-        displayName = "xAI Assistant",
+        displayName = "xAI",
         keywords = "xai,grok,ai,assistant,api key,model",
         keywordsCategory = "Advanced/xAI")
 public final class XaiOptionsPanelController extends OptionsPanelController {

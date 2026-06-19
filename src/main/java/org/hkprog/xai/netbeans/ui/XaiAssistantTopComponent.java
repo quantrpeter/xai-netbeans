@@ -44,15 +44,12 @@ public final class XaiAssistantTopComponent extends TopComponent {
         setLayout(new BorderLayout());
 
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 2));
-        JButton newAgent = new JButton("New Task");
-        newAgent.setToolTipText("Open a new parallel session (multitask)");
-        newAgent.addActionListener(e -> addSession(Mode.AGENT));
-        JButton newAsk = new JButton("New Ask");
-        newAsk.addActionListener(e -> addSession(Mode.ASK));
+        JButton newChat = new JButton("New chat");
+        newChat.setToolTipText("Open a new parallel session (multitask)");
+        newChat.addActionListener(e -> addSession(Mode.AGENT));
         JButton close = new JButton("Close Tab");
         close.addActionListener(e -> closeCurrent());
-        toolbar.add(newAgent);
-        toolbar.add(newAsk);
+        toolbar.add(newChat);
         toolbar.add(close);
         add(toolbar, BorderLayout.NORTH);
 

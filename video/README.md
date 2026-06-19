@@ -16,8 +16,9 @@ The rendered video is [`architecture-tutorial.mp4`](architecture-tutorial.mp4)
 4. The modes (`ASK`/`PLAN`/`DEBUG`/`AGENT`/`MULTITASK`) and what each may do
 5. The five callable tools (read-only vs. mutating)
 6. The agent loop (`request → tool-call → tool-result`, up to 25 iterations)
-7. The threading model (EDT vs. `RequestProcessor` pool + the approval bridge)
-8. Notable design choices and limitations
+7. The end-to-end sequence diagram, animated across all 11 participants
+8. The threading model (EDT vs. `RequestProcessor` pool + the approval bridge)
+9. Notable design choices and limitations
 
 ## Prerequisites
 

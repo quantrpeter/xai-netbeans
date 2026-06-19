@@ -1,5 +1,6 @@
 package org.hkprog.xai.netbeans.ui;
 
+import java.awt.Color;
 import java.net.URL;
 import java.util.List;
 import javax.swing.JEditorPane;
@@ -26,19 +27,20 @@ final class Transcript extends JEditorPane {
     Transcript() {
         setEditable(false);
         setContentType("text/html");
+		setBackground(Color.white);
 
         HTMLEditorKit kit = new HTMLEditorKit();
         setEditorKit(kit);
         StyleSheet css = kit.getStyleSheet();
-        css.addRule("body { font-family: sans-serif; font-size: 12px; margin: 6px; color: #202020; }");
+        css.addRule("body { font-family: sans-serif; margin: 6px; color: #202020; }");
         css.addRule(".role { font-weight: bold; margin-top: 10px; }");
         css.addRule(".you { color: #1a538a; }");
         css.addRule(".grok { color: #556b2f; }");
-        css.addRule(".msg { margin: 2px 0 10px 0; }");
+        css.addRule(".msg { margin: 2px 0 10px 0; border-radius:15px; border: 1px sold #ddd; background-color: #eee; padding: 10px; font-size: 20px; }");
         css.addRule(".tool { color: #707070; font-family: monospace; font-size: 11px; margin: 0; }");
         css.addRule(".err { color: #b00020; font-weight: bold; margin: 4px 0; }");
         css.addRule("pre { background: #f4f4f4; padding: 6px; margin: 4px 0; "
-                + "font-family: monospace; font-size: 11px; }");
+                + "font-family: monospace; }");
         css.addRule("code { font-family: monospace; background: #f4f4f4; }");
         css.addRule("h1,h2,h3,h4 { margin: 8px 0 4px 0; }");
         css.addRule("blockquote { color: #555555; margin: 4px 0 4px 10px; }");
@@ -55,13 +57,11 @@ final class Transcript extends JEditorPane {
     }
 
     void appendUser(String text) {
-        body.append("<div class=\"role you\">You</div>");
         body.append("<div class=\"msg\">").append(escapeWithBreaks(text)).append("</div>");
         rebuild();
     }
 
     void appendAssistant(String markdown) {
-        body.append("<div class=\"role grok\">Grok</div>");
         body.append("<div class=\"msg\">").append(markdownToHtml(markdown)).append("</div>");
         rebuild();
     }

@@ -16,6 +16,7 @@ from manim import (
     Text,
     RoundedRectangle,
     Line,
+    DashedLine,
     Arrow,
     Table,
     Dot,
@@ -61,6 +62,7 @@ class ArchitectureTutorial(VoiceoverScene):
         self.modes_table()
         self.tools_table()
         self.agent_loop()
+        self.sequence_diagram()
         self.threading()
         self.limitations()
         self.outro()
@@ -418,8 +420,190 @@ class ArchitectureTutorial(VoiceoverScene):
             a_uc, a_cc, a_yes, yes_lbl, a_loop, loop_lbl, a_no, no_lbl, cap,
         )))
 
+    # ----------------------------------------------------- sequence diagram
+    def _seq_msg(self, frm, to, label, color, y, dashed=False):
+        """Build one message: an arrow between two lifelines, with a label.
+
+        A self-message (frm == to) is drawn as a small loop hanging off the
+        lane; a cross-lane message is a straight (optionally dashed) arrow.
+        """
+        x1 = self._lane_x[frm]
+        if frm == to:
+            x = x1
+            l1 = Line([x, y + 0.10, 0], [x + 0.5, y + 0.10, 0], color=color, stroke_width=2.5)
+            l2 = Line([x + 0.5, y + 0.10, 0], [x + 0.5, y - 0.10, 0], color=color, stroke_width=2.5)
+            ret = Arrow(
+                [x + 0.5, y - 0.10, 0], [x, y - 0.10, 0], color=color, buff=0,
+                stroke_width=2.5, tip_length=0.14, max_tip_length_to_length_ratio=0.4,
+            )
+            lbl = Text(label, color=color).scale(0.24).next_to(l2, RIGHT, buff=0.12)
+            return VGroup(l1, l2, ret, lbl)
+
+        x2 = self._lane_x[to]
+        start, end = [x1, y, 0], [x2, y, 0]
+        if dashed:
+            arr = DashedLine(start, end, color=color, stroke_width=2.5, dash_length=0.12)
+            arr.add_tip(tip_length=0.18, tip_width=0.16)
+        else:
+            arr = Arrow(
+                start, end, color=color, buff=0.04, stroke_width=2.5,
+                tip_length=0.18, max_tip_length_to_length_ratio=0.05,
+            )
+        lbl = Text(label, color=color).scale(0.24).move_to([(x1 + x2) / 2, y + 0.17, 0])
+        return VGroup(arr, lbl)
+
+    def _seq_phase(self, label_text, narration, steps):
+        """Animate one phase: swap the phase label, drop messages one by one
+        down the lifelines while narrating, then clear them (lanes persist)."""
+        new_lbl = Text(label_text, color=PINK, weight="BOLD").scale(0.36).move_to([0, 3.7, 0])
+        built = []
+        y = 2.05
+        for frm, to, label, color, dashed in steps:
+            built.append(self._seq_msg(frm, to, label, color, y, dashed))
+            y -= 0.5
+
+        msgs = VGroup()
+        with self.voiceover(text=narration):
+            if self._cur_phase is None:
+                self.play(FadeIn(new_lbl))
+            else:
+                self.play(FadeOut(self._cur_phase), FadeIn(new_lbl))
+            self._cur_phase = new_lbl
+            for m in built:
+                self.play(FadeIn(m, shift=DOWN * 0.1), run_time=0.55)
+                msgs.add(m)
+        self.play(FadeOut(msgs), run_time=0.5)
+
+    def sequence_diagram(self):
+        self.chapter(7, "End-to-end sequence",
+                     "Now let's trace one full request, step by step, "
+                     "across every participant.", PINK)
+
+        lanes_def = [
+            ("User", "User", FG),
+            ("SP", "SessionPanel", ACCENT),
+            ("TR", "Transcript", ACCENT),
+            ("RP", "ReqProcessor", ORANGE),
+            ("AE", "AgentEngine", ORANGE),
+            ("XC", "XaiClient", PINK),
+            ("API", "Grok API", PINK),
+            ("REG", "Registry", PURPLE),
+            ("T", "AgentTool", PURPLE),
+            ("WS", "Workspace", PURPLE),
+            ("NB", "NetBeans", GREEN),
+        ]
+        n = len(lanes_def)
+        left, right = -6.4, 6.4
+        xs = [left + (right - left) * i / (n - 1) for i in range(n)]
+        top_y, bottom_y = 3.0, -3.5
+
+        self._lane_x = {}
+        self._cur_phase = None
+        headers = VGroup()
+        lifelines = VGroup()
+        for (alias, full, color), x in zip(lanes_def, xs):
+            head = self.box(alias, color, w=1.12, h=0.5, font_scale=0.3)
+            head.move_to([x, top_y, 0])
+            sub = Text(full, color=MUTED).scale(0.2).next_to(head, DOWN, buff=0.06)
+            line = DashedLine(
+                [x, top_y - 0.62, 0], [x, bottom_y, 0],
+                color=color, stroke_width=1.2, dash_length=0.09,
+            ).set_opacity(0.45)
+            self._lane_x[alias] = x
+            headers.add(VGroup(head, sub))
+            lifelines.add(line)
+
+        with self.voiceover(text=(
+            "Here are the eleven participants, from you on the left to NetBeans "
+            "on the right. Each vertical line is a lifeline; messages flow "
+            "between them, top to bottom, as the turn runs."
+        )):
+            self.play(LaggedStart(*[FadeIn(h, shift=DOWN * 0.15) for h in headers], lag_ratio=0.12))
+            self.play(Create(lifelines))
+
+        self._seq_phase(
+            "1 \u00b7 Submit the prompt",
+            (
+                "You type a prompt and hit Send. The Session Panel guards against "
+                "empty or already-running input, echoes your text into the "
+                "transcript, flips into the Working state, and posts the turn onto "
+                "the background Request Processor, which invokes the Agent Engine's "
+                "run-user-turn."
+            ),
+            [
+                ("User", "SP", "prompt + Send", ACCENT, False),
+                ("SP", "SP", "send() guards", ACCENT, False),
+                ("SP", "TR", "appendUser(text)", ACCENT, False),
+                ("SP", "SP", "setRunning \u00b7 Working\u2026", ACCENT, False),
+                ("SP", "RP", "post(runUserTurn)", ORANGE, False),
+                ("RP", "AE", "runUserTurn(text, gate)", ORANGE, False),
+            ],
+        )
+
+        self._seq_phase(
+            "2 \u00b7 Request \u2192 response",
+            (
+                "Inside the loop, the Agent Engine asks the Xai Client to complete "
+                "the conversation. The client builds the J-SON body and posts it to "
+                "the Grok API. The API returns a message, which becomes a "
+                "ChatMessage flowing back to the engine. If it carries text, that's "
+                "pushed to the Session Panel and rendered into the transcript."
+            ),
+            [
+                ("AE", "XC", "complete(history, specs)", ORANGE, False),
+                ("XC", "XC", "build JSON body", PINK, False),
+                ("XC", "API", "POST /chat/completions", PINK, False),
+                ("API", "XC", "choices[0].message", MUTED, True),
+                ("XC", "AE", "ChatMessage assistant", MUTED, True),
+                ("AE", "SP", "onAssistantText", MUTED, True),
+                ("SP", "TR", "appendAssistant (md\u2192html)", ACCENT, False),
+            ],
+        )
+
+        self._seq_phase(
+            "3 \u00b7 Tool call",
+            (
+                "If the response asks for a tool, the engine looks it up in the "
+                "registry, checks the mode's mutation policy, and executes the tool. "
+                "For a mutating tool it first requests your approval, blocking until "
+                "you decide. Then it resolves the path, reads or writes through java "
+                "N-I-O, and asks NetBeans to refresh so the I-D-E sees the change."
+            ),
+            [
+                ("AE", "REG", "get(name) + check", PURPLE, False),
+                ("AE", "T", "execute(args, ctx)", PURPLE, False),
+                ("T", "NB", "requestApproval", RED, False),
+                ("NB", "T", "approved? (blocks)", RED, True),
+                ("T", "WS", "resolve(path)", PURPLE, False),
+                ("T", "T", "read / write", PURPLE, False),
+                ("T", "WS", "refresh(file)", PURPLE, False),
+                ("WS", "NB", "FileObject.refresh()", GREEN, False),
+            ],
+        )
+
+        self._seq_phase(
+            "4 \u00b7 Result, loop & done",
+            (
+                "The tool's result returns to the engine, is surfaced to the "
+                "transcript, and appended to the history. The loop then repeats, "
+                "calling the model again, until Grok stops asking for tools and "
+                "signals completion. Finally, back on the U-I thread, the Session "
+                "Panel restores its idle state."
+            ),
+            [
+                ("T", "AE", "result string", MUTED, True),
+                ("AE", "SP", "onToolResult(preview)", MUTED, True),
+                ("SP", "TR", "appendToolActivity", ACCENT, False),
+                ("AE", "AE", "history += toolResult \u21ba", ORANGE, False),
+                ("AE", "SP", "onComplete()", GREEN, True),
+                ("RP", "SP", "finally: setRunning(false)", ORANGE, False),
+            ],
+        )
+
+        self.play(FadeOut(VGroup(headers, lifelines, self._cur_phase)))
+
     def threading(self):
-        self.chapter(7, "Threading model", "A quick word on threading.", ACCENT)
+        self.chapter(8, "Threading model", "A quick word on threading.", ACCENT)
 
         edt = self.box("EDT (Swing)", ACCENT, w=4.4, h=1.6, font_scale=0.42,
                        sub="all UI: input, transcript, approval dialogs")
@@ -459,7 +643,7 @@ class ArchitectureTutorial(VoiceoverScene):
         self.play(FadeOut(VGroup(edt, rp, a1, l1, a2, l2, bridge)))
 
     def limitations(self):
-        self.chapter(8, "Design choices & limits",
+        self.chapter(9, "Design choices & limits",
                      "Finally, some deliberate design choices and limits.", RED)
 
         items = [
