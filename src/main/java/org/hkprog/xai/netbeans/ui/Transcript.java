@@ -1,6 +1,5 @@
 package org.hkprog.xai.netbeans.ui;
 
-import java.awt.Color;
 import java.net.URL;
 import java.util.List;
 import javax.swing.JEditorPane;
@@ -24,27 +23,29 @@ final class Transcript extends JEditorPane {
     private final HtmlRenderer renderer;
     private final StringBuilder body = new StringBuilder();
 
-    Transcript() {
+    Transcript(Theme theme) {
         setEditable(false);
         setContentType("text/html");
-		setBackground(Color.white);
+        setBackground(theme.background);
 
         HTMLEditorKit kit = new HTMLEditorKit();
         setEditorKit(kit);
         StyleSheet css = kit.getStyleSheet();
-        css.addRule("body { font-family: 'Segoe UI', 'Helvetica Neue', sans-serif; margin: 8px 16px; color: #1f2937; font-size: 13px; }");
-        css.addRule(".assistant { margin: 6px 0 18px 0; color: #1f2937; line-height: 1.45; }");
-        css.addRule(".ub { background-color: #ececf1; color: #1f2937; }");
-        css.addRule(".tool { color: #9ca3af; font-family: monospace; font-size: 11px; margin: 2px 0; }");
-        css.addRule(".err { color: #dc2626; font-weight: bold; margin: 4px 0; }");
-        css.addRule("pre { background: #f8f8fb; border: 1px solid #e5e7eb; padding: 10px; margin: 6px 0; "
+        String text = Theme.hex(theme.text);
+        String border = Theme.hex(theme.border);
+        css.addRule("body { font-family: 'Segoe UI', 'Helvetica Neue', sans-serif; margin: 8px 16px; color: " + text + "; font-size: 13px; }");
+        css.addRule(".assistant { margin: 6px 0 18px 0; color: " + text + "; line-height: 1.45; }");
+        css.addRule(".ub { background-color: " + Theme.hex(theme.userBubble) + "; color: " + Theme.hex(theme.userBubbleText) + "; }");
+        css.addRule(".tool { color: " + Theme.hex(Theme.MUTED) + "; font-family: monospace; font-size: 11px; margin: 2px 0; }");
+        css.addRule(".err { color: " + Theme.hex(theme.error) + "; font-weight: bold; margin: 4px 0; }");
+        css.addRule("pre { background: " + Theme.hex(theme.preBg) + "; border: 1px solid " + border + "; padding: 10px; margin: 6px 0; "
                 + "font-family: monospace; font-size: 12px; }");
-        css.addRule("code { font-family: monospace; background: #f3f4f6; color: #1f2937; }");
-        css.addRule("h1,h2,h3,h4 { margin: 10px 0 4px 0; color: #111827; }");
-        css.addRule("blockquote { color: #6b7280; margin: 4px 0 4px 10px; }");
+        css.addRule("code { font-family: monospace; background: " + Theme.hex(theme.codeBg) + "; color: " + text + "; }");
+        css.addRule("h1,h2,h3,h4 { margin: 10px 0 4px 0; color: " + Theme.hex(theme.heading) + "; }");
+        css.addRule("blockquote { color: " + Theme.hex(theme.subtle) + "; margin: 4px 0 4px 10px; }");
         css.addRule("table { border-collapse: collapse; }");
-        css.addRule("th, td { border: 1px solid #e5e7eb; padding: 3px 8px; }");
-        css.addRule("a { color: #7c3aed; }");
+        css.addRule("th, td { border: 1px solid " + border + "; padding: 3px 8px; }");
+        css.addRule("a { color: " + Theme.hex(theme.link) + "; }");
         css.addRule("p { margin: 4px 0; }");
 
         List<org.commonmark.Extension> extensions = List.of(TablesExtension.create());

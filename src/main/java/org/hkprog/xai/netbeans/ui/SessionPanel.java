@@ -41,14 +41,12 @@ final class SessionPanel extends JPanel {
 
 	private static final RequestProcessor RP = new RequestProcessor("xAI-Assistant", 8, true);
 
-	private static final Color BG = Color.white;
-	private static final Color ACCENT = new Color(0x7C3AED);
-	private static final Color MUTED = new Color(0x9CA3AF);
-	private static final Color BORDER = new Color(0xE5E7EB);
-	private static final Color TEXT = new Color(0x111827);
+	private static final Color ACCENT = Theme.ACCENT;
+	private static final Color MUTED = Theme.MUTED;
 
-	private final Transcript transcript = new Transcript();
-	private final PlaceholderTextArea input = new PlaceholderTextArea("Ask Grok anything...", 3, 40);
+	private final Theme theme = Theme.current();
+	private final Transcript transcript = new Transcript(theme);
+	private final PlaceholderTextArea input = new PlaceholderTextArea("Ask Grok anything...", 3, 40, theme.background);
 	private final JComboBox<Mode> modeBox = new JComboBox<>(Mode.values());
 	private final RoundButton sendButton = new RoundButton("\u2191");
 	private final JButton stopButton = new JButton("Stop");
@@ -68,12 +66,12 @@ final class SessionPanel extends JPanel {
 	}
 
 	private void buildUi() {
-		setBackground(BG);
+		setBackground(theme.background);
 		add(buildHeader(), BorderLayout.NORTH);
 
 		JScrollPane scroll = new JScrollPane(transcript);
 		scroll.setBorder(BorderFactory.createEmptyBorder());
-		scroll.getViewport().setBackground(BG);
+		scroll.getViewport().setBackground(theme.background);
 		add(scroll, BorderLayout.CENTER);
 
 		add(buildBottom(), BorderLayout.SOUTH);
@@ -85,7 +83,7 @@ final class SessionPanel extends JPanel {
 		text.setOpaque(false);
 
 		JLabel society = new JLabel("Hong Kong Programming Society");
-		society.setForeground(new Color(0x6B7280));
+		society.setForeground(theme.subtle);
 		society.setFont(society.getFont().deriveFont(Font.PLAIN, 11f));
 		society.setAlignmentX(LEFT_ALIGNMENT);
 
@@ -93,7 +91,7 @@ final class SessionPanel extends JPanel {
 		titleRow.setOpaque(false);
 		titleRow.setAlignmentX(LEFT_ALIGNMENT);
 		JLabel title = new JLabel("XAI Grok");
-		title.setForeground(TEXT);
+		title.setForeground(theme.text);
 		title.setFont(title.getFont().deriveFont(Font.BOLD, 22f));
 		JLabel beta = new JLabel("BETA");
 		beta.setForeground(ACCENT);
@@ -112,9 +110,9 @@ final class SessionPanel extends JPanel {
 		text.add(subtitle);
 
 		JPanel header = new JPanel(new BorderLayout());
-		header.setBackground(BG);
+		header.setBackground(theme.background);
 		header.setBorder(BorderFactory.createCompoundBorder(
-				BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER),
+				BorderFactory.createMatteBorder(0, 0, 1, 0, theme.border),
 				BorderFactory.createEmptyBorder(14, 18, 12, 18)));
 		header.add(text, BorderLayout.CENTER);
 		return header;
@@ -128,8 +126,8 @@ final class SessionPanel extends JPanel {
 
 		JScrollPane inputScroll = new JScrollPane(input);
 		inputScroll.setPreferredSize(new Dimension(100, 74));
-		inputScroll.setBorder(new RoundedBorder(BORDER, 14));
-		inputScroll.getViewport().setBackground(BG);
+		inputScroll.setBorder(new RoundedBorder(theme.border, 14));
+		inputScroll.getViewport().setBackground(theme.background);
 
 		JPanel inputRow = new JPanel(new BorderLayout(8, 0));
 		inputRow.setOpaque(false);
@@ -145,7 +143,7 @@ final class SessionPanel extends JPanel {
 		controls.setOpaque(false);
 		stopButton.setEnabled(false);
 		JLabel modeLabel = new JLabel("Mode:");
-		modeLabel.setForeground(new Color(0x6B7280));
+		modeLabel.setForeground(theme.subtle);
 		statusLabel.setForeground(MUTED);
 		controls.add(statusLabel);
 		controls.add(stopButton);
@@ -153,7 +151,7 @@ final class SessionPanel extends JPanel {
 		controls.add(modeBox);
 
 		JPanel bottom = new JPanel(new BorderLayout(0, 8));
-		bottom.setBackground(BG);
+		bottom.setBackground(theme.background);
 		bottom.setBorder(BorderFactory.createEmptyBorder(10, 14, 12, 14));
 		bottom.add(inputRow, BorderLayout.CENTER);
 		bottom.add(controls, BorderLayout.SOUTH);
@@ -279,10 +277,10 @@ final class SessionPanel extends JPanel {
 
 		private final String hint;
 
-		PlaceholderTextArea(String hint, int rows, int cols) {
+		PlaceholderTextArea(String hint, int rows, int cols, Color background) {
 			super(rows, cols);
 			this.hint = hint;
-			setBackground(BG);
+			setBackground(background);
 		}
 
 		@Override
