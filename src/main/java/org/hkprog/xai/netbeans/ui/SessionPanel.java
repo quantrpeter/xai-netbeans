@@ -25,9 +25,11 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.KeyStroke;
 import javax.swing.border.AbstractBorder;
+import java.util.List;
 import org.hkprog.xai.netbeans.core.AgentEngine;
 import org.hkprog.xai.netbeans.core.Mode;
 import org.hkprog.xai.netbeans.settings.XaiSettings;
+import org.hkprog.xai.netbeans.tools.FileChange;
 import org.hkprog.xai.netbeans.tools.ToolContext;
 import org.openide.DialogDisplayer;
 import org.openide.NotifyDescriptor;
@@ -90,14 +92,14 @@ final class SessionPanel extends JPanel {
 		JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
 		titleRow.setOpaque(false);
 		titleRow.setAlignmentX(LEFT_ALIGNMENT);
-		JLabel title = new JLabel("XAI Grok");
-		title.setForeground(theme.text);
+		JLabel title = new JLabel("XAI Coding");
+		title.setForeground(ACCENT);
 		title.setFont(title.getFont().deriveFont(Font.BOLD, 22f));
-		JLabel beta = new JLabel("BETA");
-		beta.setForeground(ACCENT);
-		beta.setFont(beta.getFont().deriveFont(Font.BOLD, 10f));
+//		JLabel beta = new JLabel("BETA");
+//		beta.setForeground(ACCENT);
+//		beta.setFont(beta.getFont().deriveFont(Font.BOLD, 10f));
 		titleRow.add(title);
-		titleRow.add(beta);
+//		titleRow.add(beta);
 
 		JLabel subtitle = new JLabel("Your AI pair programmer powered by xAI Grok");
 		subtitle.setForeground(MUTED);
@@ -126,7 +128,7 @@ final class SessionPanel extends JPanel {
 
 		JScrollPane inputScroll = new JScrollPane(input);
 		inputScroll.setPreferredSize(new Dimension(100, 74));
-		inputScroll.setBorder(new RoundedBorder(theme.border, 14));
+		inputScroll.setBorder(new RoundedBorder(theme.inputBoxBorder, 14));
 		inputScroll.getViewport().setBackground(theme.background);
 
 		JPanel inputRow = new JPanel(new BorderLayout(8, 0));
@@ -141,7 +143,7 @@ final class SessionPanel extends JPanel {
 
 		JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
 		controls.setOpaque(false);
-		stopButton.setEnabled(false);
+		stopButton.setVisible(false);
 		JLabel modeLabel = new JLabel("Mode:");
 		modeLabel.setForeground(theme.subtle);
 		statusLabel.setForeground(MUTED);
@@ -213,7 +215,7 @@ final class SessionPanel extends JPanel {
 
 	private void setRunning(boolean running) {
 		sendButton.setEnabled(!running);
-		stopButton.setEnabled(running);
+		stopButton.setVisible(running);
 		modeBox.setEnabled(!running);
 		statusLabel.setText(running ? "Working..." : " ");
 	}
@@ -266,8 +268,8 @@ final class SessionPanel extends JPanel {
 			}
 
 			@Override
-			public void onComplete() {
-				// Re-enable handled by the task's finally block.
+			public void onComplete(List<FileChange> changes) {
+				EventQueue.invokeLater(() -> transcript.appendFileChanges(changes));
 			}
 		};
 	}

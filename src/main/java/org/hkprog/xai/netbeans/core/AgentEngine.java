@@ -11,6 +11,7 @@ import org.hkprog.xai.netbeans.api.XaiClient;
 import org.hkprog.xai.netbeans.api.XaiException;
 import org.hkprog.xai.netbeans.settings.XaiSettings;
 import org.hkprog.xai.netbeans.tools.AgentTool;
+import org.hkprog.xai.netbeans.tools.FileChange;
 import org.hkprog.xai.netbeans.tools.ToolContext;
 import org.hkprog.xai.netbeans.tools.ToolRegistry;
 
@@ -36,7 +37,11 @@ public final class AgentEngine {
 
         void onError(String message);
 
-        void onComplete();
+        /**
+         * Called once when the turn finishes. {@code changes} lists every file
+         * the agent successfully created or edited during the turn (may be empty).
+         */
+        void onComplete(List<FileChange> changes);
     }
 
     private final Mode mode;
@@ -82,7 +87,7 @@ public final class AgentEngine {
             for (int iteration = 0; iteration < maxIterations; iteration++) {
                 if (cancelled) {
                     listener.onActivity("Cancelled.");
-                    listener.onComplete();
+                    listener.onComplete(ctx.changes());
                     return;
                 }
 
@@ -94,7 +99,7 @@ public final class AgentEngine {
                 }
 
                 if (!assistant.hasToolCalls()) {
-                    listener.onComplete();
+                    listener.onComplete(ctx.changes());
                     return;
                 }
 
@@ -108,10 +113,10 @@ public final class AgentEngine {
             }
             listener.onActivity("Reached the maximum of " + maxIterations
                     + " steps without finishing. Send another message to continue.");
-            listener.onComplete();
+            listener.onComplete(ctx.changes());
         } catch (XaiException ex) {
             listener.onError(ex.getMessage());
-            listener.onComplete();
+            listener.onComplete(ctx.changes());
         }
     }
 

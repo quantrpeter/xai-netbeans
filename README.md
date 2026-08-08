@@ -57,7 +57,10 @@ Open **Tools ▸ Options ▸ Miscellaneous ▸ xAI Assistant** and set:
 
 Open the window via **Window ▸ xAI Assistant**. Pick a mode, type a prompt, and
 press **Ctrl+Enter** (or **Send**). Tool activity (file reads, edits, searches)
-is shown inline in the transcript. Use **Stop** to cancel a running turn.
+is shown inline in the transcript. When the agent finishes a turn that changed
+files, a **Changed files** strip appears with chips like `File.java +10/-3` —
+click a chip to open the file and view a before/after diff. Use **Stop** to
+cancel a running turn.
 
 ## Architecture
 

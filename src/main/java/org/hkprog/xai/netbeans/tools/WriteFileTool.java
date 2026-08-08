@@ -45,12 +45,9 @@ public final class WriteFileTool implements AgentTool {
             return "DECLINED: user did not approve writing " + rel;
         }
 
-        File parent = file.getParentFile();
-        if (parent != null && !parent.exists() && !parent.mkdirs()) {
-            return "ERROR: could not create directory " + parent.getPath();
-        }
-        Files.write(file.toPath(), content.getBytes(StandardCharsets.UTF_8));
-        Workspace.refresh(file);
+        String before = existed ? Files.readString(file.toPath(), StandardCharsets.UTF_8) : "";
+        Workspace.writeText(file, content);
+        ctx.recordChange(new FileChange(file, rel, before, content, !existed));
         ctx.log((existed ? "overwrote " : "created ") + rel);
         return (existed ? "Overwrote " : "Created ") + rel + " (" + content.length() + " chars).";
     }

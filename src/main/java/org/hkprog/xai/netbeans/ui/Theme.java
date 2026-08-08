@@ -31,10 +31,11 @@ final class Theme {
     final Color heading;
     final Color error;
     final Color link;
+	final Color inputBoxBorder;
 
     private Theme(boolean dark, Color background, Color panel, Color text, Color subtle,
             Color border, Color userBubble, Color userBubbleText, Color codeBg, Color preBg,
-            Color heading, Color error, Color link) {
+            Color heading, Color error, Color link, Color inputBoxBorder) {
         this.dark = dark;
         this.background = background;
         this.panel = panel;
@@ -48,6 +49,7 @@ final class Theme {
         this.heading = heading;
         this.error = error;
         this.link = link;
+		this.inputBoxBorder=inputBoxBorder;
     }
 
     /** Builds a palette for the look and feel that is currently installed. */
@@ -70,7 +72,8 @@ final class Theme {
                     new Color(0x2D2F31),          // code block bg
                     new Color(0xF5F5F5),          // headings
                     new Color(0xF87171),          // error (lighter red on dark)
-                    new Color(0xB392F0));         // link
+                    new Color(0xB392F0),		  // link
+					new Color(0x4B4F52));         
         }
         Color bg = ui("TextPane.background", Color.white);
         Color pn = panel != null ? panel : Color.white;
@@ -80,14 +83,15 @@ final class Theme {
                 pn,
                 text,
                 new Color(0x6B7280),
-                new Color(0xE5E7EB),
+                new Color(0xffffff),
                 new Color(0xECECF1),
                 new Color(0x1F2937),
                 new Color(0xF3F4F6),
                 new Color(0xF8F8FB),
                 new Color(0x111827),
                 new Color(0xDC2626),
-                new Color(0x7C3AED));
+                new Color(0x7C3AED),
+                new Color(0xE5E7EB));
     }
 
     /** Returns a {@code #rrggbb} string for use in CSS rules. */

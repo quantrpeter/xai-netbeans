@@ -68,8 +68,8 @@ public final class EditFileTool implements AgentTool {
         String updated = replaceAll
                 ? original.replace(oldStr, newStr)
                 : replaceFirst(original, oldStr, newStr);
-        Files.write(file.toPath(), updated.getBytes(StandardCharsets.UTF_8));
-        Workspace.refresh(file);
+        Workspace.writeText(file, updated);
+        ctx.recordChange(new FileChange(file, rel, original, updated, false));
         ctx.log("edited " + rel);
         return "Edited " + rel + " (" + (replaceAll ? occurrences : 1) + " replacement(s)).";
     }

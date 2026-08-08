@@ -22,9 +22,10 @@ Key facts:
 - **Java 17**, built against NetBeans `RELEASE240` (NetBeans 24).
 - HTTP via the JDK's built-in `java.net.http.HttpClient`.
 - JSON via Gson; transcript rendering via commonmark.
-- File actions go through `java.nio.file` and are reflected back into the IDE
-  with `FileObject.refresh()` — there is **no** editor-buffer integration and
-  **no** shell/command execution.
+- File writes go through NetBeans APIs (`EditorCookie` when the file is open,
+  otherwise `FileObject.getOutputStream`) so open editors update in place and
+  the IDE does **not** show the external-change reload popup. There is **no**
+  shell/command execution.
 
 ---
 
@@ -87,7 +88,11 @@ private static final RequestProcessor RP = new RequestProcessor("xAI-Assistant",
 
 **`Transcript`** — a read-only `JEditorPane` that renders the conversation as
 HTML: user lines, Grok answers (Markdown → HTML via commonmark), tool-activity
-bullets, info lines, and errors. Links open through NetBeans'
+bullets, info lines, errors, and an end-of-turn **Changed files** strip. Each
+changed file is a chip link (`xai-diff:<id>`) labelled like
+`Workspace.java +10/-3`; clicking it opens the file and a before/after diff
+via `DiffViewer` (NetBeans Diff SPI when available, otherwise a side-by-side
+fallback TopComponent). Other links open through NetBeans'
 `HtmlBrowser.URLDisplayer`.
 
 ### 3.2 Core engine (`core`)
@@ -157,8 +162,9 @@ The supporting data model:
 ### 3.4 Tools layer (`tools`) — how Grok's actions are executed
 
 When Grok wants the IDE to *do* something, it emits a `tool_call`. The
-`AgentEngine` looks the tool up in the `ToolRegistry` and runs it locally. Tools
-operate on the **filesystem** and then ask NetBeans to refresh its view.
+`AgentEngine` looks the tool up in the `ToolRegistry` and runs it locally.
+Mutating tools write through NetBeans-aware APIs so the IDE stays in sync
+without external-change dialogs.
 
 | # | Tool         | Function name | Mutating | What it does |
 |---|--------------|---------------|----------|--------------|
@@ -172,11 +178,16 @@ Supporting pieces:
 
 - **`Workspace`** resolves paths. Roots are tried in order: an explicit
   `workspaceRoot` setting, then each open NetBeans project directory
-  (`OpenProjects.getDefault()`), then `user.dir`. After a write it calls
-  `refresh(file)` → `FileUtil.toFileObject(...).refresh()` so the IDE sees the
-  change.
-- **`ToolContext`** carries the approval gate (`requestApproval`) and an
-  activity logger (`log`) into each tool.
+  (`OpenProjects.getDefault()`), then `user.dir`. Writes go through
+  `writeText(file, content)` which prefers an open `EditorCookie` document
+  (edit + save), then a locked `FileObject` output stream, and only falls back
+  to raw `Files.write` + `refresh()` when the path is outside the NetBeans
+  filesystem view.
+- **`ToolContext`** carries the approval gate (`requestApproval`), an
+  activity logger (`log`), and a per-turn `FileChange` ledger into each tool.
+  Mutating tools call `recordChange(...)` after a successful write; at the end
+  of the turn the engine passes the list to the UI, which renders clickable
+  chips (`File.java +10/-3`) that open a before/after diff.
 - **`Schemas`** builds the JSON Schema for each tool's parameters and parses
   arguments (`str`, `integer`, `bool`).
 

@@ -18,6 +18,7 @@ import org.openide.windows.TopComponent;
  */
 @TopComponent.Description(
         preferredID = "XaiAssistantTopComponent",
+		iconBase = "org/hkprog/xai/netbeans/ui/icon.png",
         persistenceType = TopComponent.PERSISTENCE_ALWAYS)
 @TopComponent.Registration(mode = "rightSlidingSide", openAtStartup = false)
 @ActionID(category = "Window", id = "org.hkprog.xai.netbeans.ui.XaiAssistantTopComponent")
