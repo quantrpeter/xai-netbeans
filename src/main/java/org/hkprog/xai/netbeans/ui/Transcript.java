@@ -33,6 +33,8 @@ final class Transcript extends JEditorPane {
     private final AtomicInteger changeSeq = new AtomicInteger();
     private final Map<String, FileChange> changeById = new LinkedHashMap<>();
     private Consumer<FileChange> changeClickHandler = DiffViewer::open;
+    private final String addColor;
+    private final String delColor;
 
     Transcript(Theme theme) {
         setEditable(false);
@@ -56,8 +58,12 @@ final class Transcript extends JEditorPane {
         css.addRule("a.change-chip { color: " + text + "; background: " + Theme.hex(theme.panel)
                 + "; border: 1px solid " + border + "; padding: 3px 8px; margin: 0 4px 4px 0; "
                 + "font-family: monospace; font-size: 11px; text-decoration: none; }");
-        css.addRule("span.add { color: #16a34a; font-weight: bold; }");
-        css.addRule("span.del { color: #dc2626; font-weight: bold; }");
+        // Swing HTML 3.2 often ignores class selectors on nested spans; colors are
+        // also applied with <font color> in appendFileChanges.
+        this.addColor = theme.dark ? "#4ade80" : "#16a34a";
+        this.delColor = theme.dark ? "#f87171" : "#dc2626";
+        css.addRule(".add { color: " + addColor + "; }");
+        css.addRule(".del { color: " + delColor + "; }");
         css.addRule("pre { background: " + Theme.hex(theme.preBg) + "; border: 1px solid " + border + "; border-radius: 10px; padding: 10px; margin: 6px 0; "
                 + "font-family: monospace; font-size: 12px; }");
         css.addRule("code { font-family: monospace; background: " + Theme.hex(theme.codeBg) + "; color: " + text + "; }");
@@ -65,6 +71,8 @@ final class Transcript extends JEditorPane {
         css.addRule("blockquote { color: " + Theme.hex(theme.subtle) + "; margin: 4px 0 4px 10px; }");
         css.addRule("table { border-collapse: collapse; }");
         css.addRule("th, td { border: 1px solid " + border + "; border-radius: 10px; padding: 3px 8px; }");
+        css.addRule("table.changes-list { border: none; width: 100%; }");
+        css.addRule("table.changes-list td { border: none; padding: 2px 0; }");
         css.addRule("a { color: " + Theme.hex(theme.link) + "; }");
         css.addRule("p { margin: 4px 0; }");
 
@@ -120,15 +128,16 @@ final class Transcript extends JEditorPane {
         }
         body.append("<div class=\"changes\">");
         body.append("<div class=\"changes-title\">Changed files</div>");
-        // Table row keeps chips on one visual line under Swing HTML.
-        body.append("<table cellspacing=\"4\" cellpadding=\"0\"><tr>");
+        // One file per row. Swing HTML 3.2 ignores most CSS on nested spans, so
+        // add/del colors use <font color> which the engine actually honours.
+        body.append("<table class=\"changes-list\" cellspacing=\"4\" cellpadding=\"0\" width=\"100%\">");
         for (FileChange change : changes) {
             String id = "c" + changeSeq.incrementAndGet();
             changeById.put(id, change);
             String label = escape(change.file().getName())
-                    + " <span class=\"add\">+" + change.addedLines() + "</span>/"
-                    + "<span class=\"del\">-" + change.removedLines() + "</span>";
-            body.append("<td><a class=\"change-chip\" href=\"")
+                    + " <font color=\"" + addColor + "\" class=\"add\"><b>+" + change.addedLines() + "</b></font>/"
+                    + "<font color=\"" + delColor + "\" class=\"del\"><b>-" + change.removedLines() + "</b></font>";
+            body.append("<tr><td><a class=\"change-chip\" href=\"")
                     .append(DIFF_SCHEME)
                     .append(':')
                     .append(id)
@@ -136,9 +145,9 @@ final class Transcript extends JEditorPane {
                     .append(escape(change.relativePath()))
                     .append("\">")
                     .append(label)
-                    .append("</a></td>");
+                    .append("</a></td></tr>");
         }
-        body.append("</tr></table></div>");
+        body.append("</table></div>");
         rebuild();
     }
 
