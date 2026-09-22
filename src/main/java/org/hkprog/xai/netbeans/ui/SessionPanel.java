@@ -106,10 +106,10 @@ final class SessionPanel extends JPanel {
 		subtitle.setFont(subtitle.getFont().deriveFont(Font.PLAIN, 11f));
 		subtitle.setAlignmentX(LEFT_ALIGNMENT);
 
-		text.add(society);
+//		text.add(society);
 		text.add(Box.createVerticalStrut(2));
 		text.add(titleRow);
-		text.add(subtitle);
+//		text.add(subtitle);
 
 		JPanel header = new JPanel(new BorderLayout());
 		header.setBackground(theme.background);
