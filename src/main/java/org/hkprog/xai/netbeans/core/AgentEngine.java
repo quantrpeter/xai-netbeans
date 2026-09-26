@@ -67,6 +67,16 @@ public final class AgentEngine {
         return cancelled;
     }
 
+    /** Replaces the system message so the model sees the project and file open now. */
+    private void refreshContext() {
+        ChatMessage system = ChatMessage.system(SystemPrompts.forMode(mode));
+        if (history.isEmpty()) {
+            history.add(system);
+        } else {
+            history.set(0, system);
+        }
+    }
+
     /**
      * Sends a user message and drives the agent loop to completion.
      *
@@ -76,6 +86,7 @@ public final class AgentEngine {
      */
     public void runUserTurn(String userText, ToolContext.ApprovalGate gate, Listener listener) {
         cancelled = false;
+        refreshContext();
         history.add(ChatMessage.user(userText));
 
         List<AgentTool> tools = mode.tools(registry);
