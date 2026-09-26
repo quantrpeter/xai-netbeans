@@ -172,8 +172,8 @@ public final class FindUsagesTool implements AgentTool {
                         + "|(?:\\binterface\\s+" + id + "\\b)"
                         + "|(?:\\benum\\s+" + id + "\\b)"
                         + "|(?:\\brecord\\s+" + id + "\\b)"
-                        + "|(?:\\b(?:[\\w.<>,?\\[\\]]+)\\s+" + id + "\\s*\\()"
-                        + "|(?:\\b(?:[\\w.<>,?\\[\\]]+)\\s+" + id + "\\s*[=;])");
+                        + "|(?:\\b(?!new\\b)(?:[\\w.<>,?\\[\\]]+)\\s+" + id + "\\s*\\()"
+                        + "|(?:\\b(?!new\\b)(?:[\\w.<>,?\\[\\]]+)\\s+" + id + "\\s*;)");
     }
 
     static String identifierOnLine(File file, int line, int column) {
