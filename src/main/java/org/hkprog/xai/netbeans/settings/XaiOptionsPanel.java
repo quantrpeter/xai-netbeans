@@ -18,7 +18,7 @@ final class XaiOptionsPanel extends JPanel {
     private final JPasswordField apiKeyField = new JPasswordField(30);
     private final JTextField baseUrlField = new JTextField(30);
     private final JComboBox<String> modelBox = new JComboBox<>(new String[]{
-        "grok-code-fast-1", "grok-4.3", "grok-4", "grok-3", "grok-3-mini"
+        "grok-code-fast-1", "grok-4.7", "grok-4.6", "grok-3", "grok-3-mini"
     });
     private final JSpinner temperatureSpinner =
             new JSpinner(new SpinnerNumberModel(0.2d, 0.0d, 2.0d, 0.1d));

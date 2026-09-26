@@ -1,7 +1,9 @@
 package org.hkprog.xai.netbeans.core;
 
 import java.io.File;
-import javax.swing.text.JTextComponent;
+import javax.swing.JEditorPane;
+import javax.swing.text.Document;
+import javax.swing.text.StyledDocument;
 import org.hkprog.xai.netbeans.tools.Workspace;
 import org.netbeans.api.project.FileOwnerQuery;
 import org.netbeans.api.project.Project;
@@ -198,8 +200,13 @@ final class SystemPrompts {
         if (data != null) {
             return data;
         }
+        // RELEASE240 EditorCookie has no Lookup. The pane's document is enough
+        // to recover the DataObject when the window only exposes the cookie.
         EditorCookie cookie = component.getLookup().lookup(EditorCookie.class);
-        return cookie == null ? null : cookie.getLookup().lookup(DataObject.class);
+        if (cookie == null || cookie.getDocument() == null) {
+            return null;
+        }
+        return (DataObject) cookie.getDocument().getProperty(Document.StreamDescriptionProperty);
     }
 
     private static void appendCaret(StringBuilder sb, DataObject data) {
@@ -207,11 +214,15 @@ final class SystemPrompts {
         if (cookie == null) {
             return;
         }
-        JTextComponent pane = cookie.getOpenedPane();
-        if (pane == null || pane.getDocument() == null) {
+        JEditorPane pane = NbDocument.findRecentEditorPane(cookie);
+        if (pane == null) {
             return;
         }
-        int line = NbDocument.findLineNumber(pane.getDocument(), pane.getCaretPosition()) + 1;
+        StyledDocument document = cookie.getDocument();
+        if (document == null) {
+            return;
+        }
+        int line = NbDocument.findLineNumber(document, pane.getCaretPosition()) + 1;
         sb.append("Caret line: ").append(line).append(" (1-based).\n");
     }
 }
