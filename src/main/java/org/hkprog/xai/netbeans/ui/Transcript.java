@@ -22,8 +22,12 @@ import org.openide.awt.HtmlBrowser;
  * returns as Markdown) are converted to HTML and rendered with styling; user,
  * tool and error lines get their own visual treatment. File-change chips at the
  * end of a turn are clickable links that open a before/after diff.
+ * <p>
+ * Public with a no-arg constructor so the NetBeans GUI builder can instantiate
+ * it from {@code SessionPanel.form}. The real session still uses
+ * {@link #Transcript(Theme)}.
  */
-final class Transcript extends JEditorPane {
+public final class Transcript extends JEditorPane {
 
     private static final String DIFF_SCHEME = "xai-diff";
 
@@ -36,7 +40,12 @@ final class Transcript extends JEditorPane {
     private final String addColor;
     private final String delColor;
 
-    Transcript(Theme theme) {
+    /** Used by the GUI builder. The running panel passes a theme instead. */
+    public Transcript() {
+        this(Theme.current());
+    }
+
+    public Transcript(Theme theme) {
         setEditable(false);
         setContentType("text/html");
         setBackground(theme.background);

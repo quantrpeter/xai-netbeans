@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 
 /**
  * Context passed to a tool during execution. Lets a mutating tool request
@@ -25,12 +26,23 @@ public final class ToolContext {
 
     private final ApprovalGate gate;
     private final Listener listener;
+    private final BooleanSupplier cancelled;
     /** Absolute canonical path → accumulated change for this turn. */
     private final Map<String, FileChange> changes = new LinkedHashMap<>();
 
     public ToolContext(ApprovalGate gate, Listener listener) {
+        this(gate, listener, () -> false);
+    }
+
+    public ToolContext(ApprovalGate gate, Listener listener, BooleanSupplier cancelled) {
         this.gate = gate;
         this.listener = listener;
+        this.cancelled = cancelled == null ? () -> false : cancelled;
+    }
+
+    /** True once the user has asked the current turn to stop. */
+    public boolean isCancelled() {
+        return cancelled.getAsBoolean();
     }
 
     public boolean requestApproval(String title, String detail) {

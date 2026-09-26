@@ -85,14 +85,50 @@ public final class RunCommandTool implements AgentTool {
         pb.directory(cwd);
         pb.redirectErrorStream(true);
         Process process = pb.start();
-        byte[] raw = readCapped(process.getInputStream(), MAX_OUTPUT_CHARS * 4);
-        boolean finished = process.waitFor(timeout, TimeUnit.SECONDS);
+        byte[][] raw = new byte[1][];
+        Exception[] readError = new Exception[1];
+        Thread reader = new Thread(() -> {
+            try {
+                raw[0] = readCapped(process.getInputStream(), MAX_OUTPUT_CHARS * 4);
+            } catch (Exception ex) {
+                readError[0] = ex;
+            }
+        }, "xai-run-command");
+        reader.setDaemon(true);
+        reader.start();
+
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(timeout);
+        boolean finished = false;
+        boolean stopped = false;
+        while (true) {
+            if (ctx.isCancelled()) {
+                stopped = true;
+                process.destroyForcibly();
+                break;
+            }
+            long left = deadline - System.nanoTime();
+            if (left <= 0) {
+                break;
+            }
+            if (process.waitFor(Math.min(left, TimeUnit.MILLISECONDS.toNanos(250)), TimeUnit.NANOSECONDS)) {
+                finished = true;
+                break;
+            }
+        }
         if (!finished) {
             process.destroyForcibly();
-            process.waitFor(5, TimeUnit.SECONDS);
-            return "ERROR: timed out after " + timeout + "s.\n" + clip(decode(raw));
         }
-        String output = clip(decode(raw));
+        reader.join(5_000);
+        if (readError[0] != null) {
+            throw readError[0];
+        }
+        String output = clip(decode(raw[0] == null ? new byte[0] : raw[0]));
+        if (stopped) {
+            return "ERROR: cancelled.\n" + output;
+        }
+        if (!finished) {
+            return "ERROR: timed out after " + timeout + "s.\n" + output;
+        }
         int code = process.exitValue();
         if (output.isEmpty()) {
             return "exit " + code + " (no output)";

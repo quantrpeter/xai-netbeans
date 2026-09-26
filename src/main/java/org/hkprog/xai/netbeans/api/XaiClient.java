@@ -12,6 +12,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.function.BooleanSupplier;
 import org.hkprog.xai.netbeans.settings.XaiSettings;
 
 /**
@@ -39,6 +42,16 @@ public final class XaiClient {
      * @return the assistant message of the first choice
      */
     public ChatMessage complete(List<ChatMessage> messages, List<ToolSpec> tools) throws XaiException {
+        return complete(messages, tools, () -> false);
+    }
+
+    /**
+     * Same as {@link #complete(List, List)}, but abandons the HTTP call as soon
+     * as {@code cancelled} returns true so a Stop button does not wait out the
+     * request timeout.
+     */
+    public ChatMessage complete(List<ChatMessage> messages, List<ToolSpec> tools,
+            BooleanSupplier cancelled) throws XaiException {
         String apiKey = XaiSettings.getApiKey();
         if (apiKey == null || apiKey.isBlank()) {
             throw new XaiException("No xAI API key configured. Set it in Tools > Options > xAI, "
@@ -68,16 +81,40 @@ public final class XaiClient {
                 .POST(HttpRequest.BodyPublishers.ofString(gson.toJson(body)))
                 .build();
 
+        CompletableFuture<HttpResponse<String>> pending =
+                http.sendAsync(request, HttpResponse.BodyHandlers.ofString());
         HttpResponse<String> response;
         try {
-            response = http.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (IOException ex) {
-            throw new XaiException("Network error contacting xAI API: " + ex.getMessage(), ex);
+            while (!pending.isDone()) {
+                if (cancelled != null && cancelled.getAsBoolean()) {
+                    pending.cancel(true);
+                    throw new XaiException("Request cancelled.");
+                }
+                try {
+                    response = pending.get(250, java.util.concurrent.TimeUnit.MILLISECONDS);
+                    return finish(response);
+                } catch (java.util.concurrent.TimeoutException waiting) {
+                    // poll the cancel flag again
+                }
+            }
+            response = pending.get();
+        } catch (XaiException ex) {
+            throw ex;
         } catch (InterruptedException ex) {
+            pending.cancel(true);
             Thread.currentThread().interrupt();
             throw new XaiException("Request interrupted", ex);
+        } catch (ExecutionException ex) {
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            if (cause instanceof IOException io) {
+                throw new XaiException("Network error contacting xAI API: " + io.getMessage(), io);
+            }
+            throw new XaiException("Network error contacting xAI API: " + cause.getMessage(), cause);
         }
+        return finish(response);
+    }
 
+    private ChatMessage finish(HttpResponse<String> response) throws XaiException {
         if (response.statusCode() < 200 || response.statusCode() >= 300) {
             throw new XaiException("xAI API error " + response.statusCode() + ": "
                     + extractError(response.body()));

@@ -80,7 +80,7 @@ public final class AgentEngine {
 
         List<AgentTool> tools = mode.tools(registry);
         List<ToolSpec> specs = registry.specs(tools);
-        ToolContext ctx = new ToolContext(gate, listener::onActivity);
+        ToolContext ctx = new ToolContext(gate, listener::onActivity, this::isCancelled);
 
         int maxIterations = Math.max(1, XaiSettings.getMaxIterations());
         try {
@@ -91,7 +91,7 @@ public final class AgentEngine {
                     return;
                 }
 
-                ChatMessage assistant = client.complete(history, specs);
+                ChatMessage assistant = client.complete(history, specs, this::isCancelled);
                 history.add(assistant);
 
                 if (assistant.content() != null && !assistant.content().isBlank()) {
@@ -105,10 +105,17 @@ public final class AgentEngine {
 
                 for (ToolCall call : assistant.toolCalls()) {
                     if (cancelled) {
-                        break;
+                        listener.onActivity("Cancelled.");
+                        listener.onComplete(ctx.changes());
+                        return;
                     }
                     String result = dispatch(call, ctx, listener);
                     history.add(ChatMessage.toolResult(call.id(), call.name(), result));
+                    if (cancelled) {
+                        listener.onActivity("Cancelled.");
+                        listener.onComplete(ctx.changes());
+                        return;
+                    }
                 }
             }
             listener.onActivity("Reached the maximum of " + maxIterations

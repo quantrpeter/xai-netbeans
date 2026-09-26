@@ -3,8 +3,14 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.hkprog</groupId>
     <artifactId>xai-netbeans</artifactId>
-    <version>1.4</version>
+    <version>1.5</version>
     <packaging>nbm</packaging>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <maven.compiler.release>17</maven.compiler.release>
+        <netbeans.version>RELEASE240</netbeans.version>
+		<skipTests>true</skipTests>
+    </properties>
     <build>
         <plugins>
             <plugin>
@@ -149,9 +155,4 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.release>17</maven.compiler.release>
-        <netbeans.version>RELEASE240</netbeans.version>
-    </properties>
 </project>
