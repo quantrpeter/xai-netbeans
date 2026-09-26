@@ -64,8 +64,7 @@ public final class SearchTool implements AgentTool {
         while (!stack.isEmpty() && count[0] < MAX_RESULTS) {
             File current = stack.pop();
             if (current.isDirectory()) {
-                String dn = current.getName();
-                if (dn.equals(".git") || dn.equals("target") || dn.equals("node_modules")) {
+                if (Workspace.isSkippedDir(current.getName()) && !current.equals(base)) {
                     continue;
                 }
                 File[] children = current.listFiles();

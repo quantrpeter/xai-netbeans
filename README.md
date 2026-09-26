@@ -68,7 +68,7 @@ cancel a running turn.
 org.hkprog.xai.netbeans
 ├── api/        XaiClient + chat/tool-call data model (java.net.http + Gson)
 ├── settings/   XaiSettings (NbPreferences) + Options panel
-├── tools/      AgentTool implementations (read/list/search/write/edit) + registry + Workspace
+├── tools/      AgentTool implementations (read/list/glob/search/usages/write/edit/delete/run) + registry + Workspace
 ├── core/       Mode, SystemPrompts, AgentEngine (the tool-calling loop)
 └── ui/         XaiAssistantTopComponent + SessionPanel + Transcript
 ```
@@ -84,7 +84,8 @@ or the step cap is reached.
 ## Notes & limitations
 
 - Responses are non-streaming in this version; a turn shows once complete.
-- Mutating tools (`write_file`, `edit_file`) are only available in Agent /
-  Multitask modes and are gated by the approval setting.
+- Mutating tools (`write_file`, `edit_file`, `delete_file`, `run_command`) are
+  only available in Agent / Multitask modes and are gated by the approval setting.
+  `run_command` and `delete_file` also refuse paths outside the workspace root.
 - File-path resolution prefers the configured workspace root, then open NetBeans
   projects, then the IDE working directory.

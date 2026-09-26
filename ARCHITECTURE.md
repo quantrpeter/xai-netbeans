@@ -24,8 +24,9 @@ Key facts:
 - JSON via Gson; transcript rendering via commonmark.
 - File writes go through NetBeans APIs (`EditorCookie` when the file is open,
   otherwise `FileObject.getOutputStream`) so open editors update in place and
-  the IDE does **not** show the external-change reload popup. There is **no**
-  shell/command execution.
+  the IDE does **not** show the external-change reload popup. Agent mode can
+  run a workspace-scoped shell command (`run_command`) to build or test; the
+  command is approval-gated, timed out, and cannot leave the workspace root.
 
 ---
 
@@ -38,9 +39,9 @@ XaiAssistantTopComponent        (the tool window; hosts N tabs)
         ├── AgentEngine         (owns history + runs the agent loop)
         │     ├── List<ChatMessage> history   ← conversation state
         │     ├── XaiClient      → HTTP → xAI / Grok API
-        │     ├── ToolRegistry   (the 5 callable tools)
-        │     │     ├── ReadFileTool, ListDirTool, SearchTool   (read-only)
-        │     │     └── WriteFileTool, EditFileTool             (mutating)
+        │     ├── ToolRegistry   (the 9 callable tools)
+        │     │     ├── ReadFileTool, ListDirTool, GlobTool, SearchTool, FindUsagesTool  (read-only)
+        │     │     └── WriteFileTool, EditFileTool, DeleteFileTool, RunCommandTool      (mutating)
         │     └── SystemPrompts.forMode(Mode)
         └── XaiSettings          (read at runtime)
 
@@ -100,11 +101,11 @@ fallback TopComponent). Other links open through NetBeans'
 **`Mode`** decides which tools are exposed and whether mutations are allowed:
 
 | Mode        | Mutations | Tools exposed       | Intent |
-|-------------|-----------|---------------------|--------|
-| `ASK`       | no        | read-only (3)       | answer questions, cite files/lines |
-| `PLAN`      | no        | read-only (3)       | produce a numbered change plan |
-| `DEBUG`     | no        | read-only (3)       | hypothesis → evidence → root cause |
-| `AGENT`     | yes       | all (5)             | full autonomy, prefers `edit_file` |
+|-------------|-----------|------------5)       | answer questions, cite files/lines |
+| `PLAN`      | no        | read-only (5)       | produce a numbered change plan |
+| `DEBUG`     | no        | read-only (5)       | hypothesis → evidence → root cause |
+| `AGENT`     | yes       | all (9)             | full autonomy, prefers `edit_file`, then build/test |
+| `MULTITASK` | yes       | all (9)             | full autonomy, prefers `edit_file` |
 | `MULTITASK` | yes       | all (5)             | same as AGENT, run across parallel tabs |
 
 **`SystemPrompts.forMode(Mode)`** builds the single system message: identity
@@ -165,13 +166,17 @@ When Grok wants the IDE to *do* something, it emits a `tool_call`. The
 `AgentEngine` looks the tool up in the `ToolRegistry` and runs it locally.
 Mutating tools write through NetBeans-aware APIs so the IDE stays in sync
 without external-change dialogs.
-
-| # | Tool         | Function name | Mutating | What it does |
-|---|--------------|---------------|----------|--------------|
-| 1 | `ReadFileTool` | `read_file`  | no  | Read a file (optionally a line range); returns numbered lines. |
-| 2 | `ListDirTool`  | `list_dir`   | no  | List a directory; skips `.git`, `target`, `node_modules`. |
-| 3 | `SearchTool`   | `search`     | no  | Regex search across files (extension filter, size/result caps). |
-| 4 | `WriteFileTool`| `write_file` | yes | Create/overwrite a file; requires approval. |
+   | Function name | Mutating | What it does |
+|---|-----------------|---------------|----------|--------------|
+| 1 | `ReadFileTool`  | `read_file`   | no  | Read a file (optionally a line range); returns numbered lines. |
+| 2 | `ListDirTool`   | `list_dir`    | no  | List a directory; skips `.git`, `target`, `build`, `node_modules`. |
+| 3 | `GlobTool`      | `glob`        | no  | Find files by name (`**/*.java`); does not read contents. |
+| 4 | `SearchTool`    | `search`      | no  | Regex search across files (extension filter, size/result caps). |
+| 5 | `FindUsagesTool`| `find_usages` | no  | Declarations vs references of a Java identifier (scoped text scan). |
+| 6 | `WriteFileTool` | `write_file`  | yes | Create/overwrite a file; requires approval. |
+| 7 | `EditFileTool`  | `edit_file`   | yes | Exact `old_string` → `new_string` replacement; requires approval. |
+| 8 | `DeleteFileTool`| `delete_file` | yes | Delete one file inside the workspace; refuses directories; requires approval. |
+| 9 | `RunCommandTool`| `run_command` | yes | Run a shell command in the workspace (build/test); timeout and output caps
 | 5 | `EditFileTool` | `edit_file`  | yes | Exact `old_string` → `new_string` replacement; requires approval. |
 
 Supporting pieces:
@@ -187,7 +192,7 @@ Supporting pieces:
   activity logger (`log`), and a per-turn `FileChange` ledger into each tool.
   Mutating tools call `recordChange(...)` after a successful write; at the end
   of the turn the engine passes the list to the UI, which renders clickable
-  chips (`File.java +10/-3`) that open a before/after diff.
+  chips (`File.java +10/-3`) that open a , `delete_file`, `run_command`before/after diff.
 - **`Schemas`** builds the JSON Schema for each tool's parameters and parses
   arguments (`str`, `integer`, `bool`).
 
@@ -327,7 +332,7 @@ sequenceDiagram
                 SP->>TR: appendToolActivity
                 AE->>REG: get(name) + mutation check
                 AE->>T: execute(args, ctx)
-                alt mutating tool (write_file / edit_file)
+                alt mutating tool (write_file / edit_file / delete_file / run_command)
                     T->>SP: ctx.requestApproval(title, detail)
                     SP->>NB: DialogDisplayer YES/NO (invokeAndWait, blocks)
                     NB-->>SP: approved?
@@ -369,8 +374,10 @@ sequenceDiagram
 
 ## 8. Notable design choices & limitations
 
-1. **Non-streaming** — a turn blocks until the full response arrives.
-2. **No editor integration** — edits go straight to disk via `java.nio` and are
+1. **Bounded command execution** — `run_command` (Agent / Multitask only) runs
+   one shell command inside the workspace root, with approval, a timeout
+   (default 120s, max 300s), and truncated output. It is not a general remote
+   shell: the working directory cannot leave the workspacevia `java.nio` and are
    surfaced with `FileObject.refresh()`; unsaved editor buffers can be
    overwritten.
 3. **No command execution** — there is no tool to run Maven, tests, or shell

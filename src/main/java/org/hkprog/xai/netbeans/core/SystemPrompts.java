@@ -28,21 +28,29 @@ final class SystemPrompts {
         switch (mode) {
             case ASK:
                 sb.append("MODE: ASK. Answer the developer's questions about the codebase. ")
-                  .append("You have READ-ONLY tools. Do NOT attempt to modify any files. ")
+                  .append("You have READ-ONLY tools (read_file, list_dir, glob, search, find_usages). ")
+                  .append("Do NOT attempt to modify any files or run commands. ")
                   .append("Cite concrete files and line numbers you inspected.");
                 break;
             case PLAN:
-                sb.append("MODE: PLAN. Produce a clear, step-by-step implementation plan for the request. ")
+                sb.append("MODE: PLAN. Produce a cl (read_file, list_dir, glob, search, find_usages); ")
+                  .append("explore the code as needed, but do NOT edit files or run commandest. ")
                   .append("You have READ-ONLY tools; explore the code as needed, but do NOT edit files. ")
                   .append("End with a numbered plan of concrete edits (files + what changes), plus risks and open questions.");
                 break;
             case DEBUG:
-                sb.append("MODE: DEBUG. Systematically investigate the reported bug. ")
-                  .append("You have READ-ONLY tools. Form a hypothesis, gather evidence from the code, ")
+                sb.append("MODE: DEBUG. Systematica (read_file, list_dir, glob, search, find_usages). ")
+                  .append("Form a hypothesis, gather evidence from the code, ")
+                  .append("identify the likely root cause, and propose a specific fix (file + change). ")
+                  .append("Do NOT edit files or run command
                   .append("identify the likely root cause, and propose a specific fix (file + change). Do NOT edit files.");
                 break;
-            case AGENT:
-            case MULTITASK:
+            case AGENT:, edit, and delete files, and run commands. ")
+                  .append("Use glob to find files by name, search for text, and find_usages before renaming or removing a symbol. ")
+                  .append("Make minimal, focused edits; prefer edit_file over rewriting whole files. ")
+                  .append("After edits, run the project's build or tests with run_command (for example 'mvn -q test') ")
+                  .append("and fix failures you caused. ")
+                  .append("delete_file and run_command require approval and must stay inside the workspace
                 sb.append("MODE: AGENT. Complete the developer's task end to end. ")
                   .append("You may read, search, create and edit files using the tools. ")
                   .append("Make minimal, focused edits; prefer edit_file over rewriting whole files. ")

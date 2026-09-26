@@ -48,7 +48,7 @@ public final class ListDirTool implements AgentTool {
         StringBuilder sb = new StringBuilder();
         for (File f : children) {
             String name = f.getName();
-            if (name.equals(".git") || name.equals("target") || name.equals("node_modules")) {
+            if (Workspace.isSkippedDir(name)) {
                 sb.append(f.isDirectory() ? "[DIR] " : "      ").append(name).append("  (skipped)\n");
                 continue;
             }

@@ -14,9 +14,13 @@ public final class ToolRegistry {
     public ToolRegistry() {
         register(new ReadFileTool());
         register(new ListDirTool());
+        register(new GlobTool());
         register(new SearchTool());
+        register(new FindUsagesTool());
         register(new WriteFileTool());
         register(new EditFileTool());
+        register(new DeleteFileTool());
+        register(new RunCommandTool());
     }
 
     public void register(AgentTool tool) {

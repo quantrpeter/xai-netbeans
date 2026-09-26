@@ -86,6 +86,29 @@ public final class Workspace {
         return new File(primaryRoot(), path);
     }
 
+    /** Directory names tools should not descend into. */
+    public static boolean isSkippedDir(String name) {
+        return name.equals(".git")
+                || name.equals("target")
+                || name.equals("node_modules")
+                || name.equals("build")
+                || name.equals("dist");
+    }
+
+    /**
+     * True when {@code file} is the primary root or a file inside it.
+     * Mutating tools use this to refuse paths that escape the workspace.
+     */
+    public static boolean isInsideWorkspace(File file) {
+        try {
+            Path base = primaryRoot().getCanonicalFile().toPath();
+            Path target = file.getCanonicalFile().toPath();
+            return target.startsWith(base);
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
     /** A path string relative to the primary root, for display. */
     public static String relativize(File file) {
         try {
